@@ -1,0 +1,245 @@
+# Copyright 2023 Thomas Brown
+# Distributed under the Boost Software License, Version 1.0. (See
+# accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+#| tag::doc[]
+
+:toc:
+
+= Boost.Build module for Protocol Buffers
+
+== Overview
+
+This module uses the Protocol Buffers `protoc` program automatically
+generate the C++ files from `.proto` files.
+
+== Configuration
+
+[source, jam]
+----
+import protoc ;
+----
+
+The protoc tool must be configured as any other Boost.Build tool.  The
+tool will automatically detect the location and version of the tool.
+
+[source, jam]
+----
+using protoc ;
+----
+
+The desired version can be specified.
+
+[source, jam]
+----
+using protoc : 3.7.1 ;
+----
+
+The location can also be specified both with and without a desired
+version.
+
+[source, jam]
+----
+using protoc : : /path/to/protoc ;
+----
+
+Note that running with the `--debug-configuration` option to
+Boost.Build will print the `protoc` location and version.
+
+== `.proto` files
+
+This project adds a new type for `.proto` files.
+
+[source, jam]
+----
+exe example
+  : # sources
+    main.cpp
+
+    a.proto
+    b.proto
+  ;
+----
+
+== Examples
+
+=== Simple
+
+This is the simplest possible example and works as expected.
+
+[source, jam]
+----
+# Jamfile
+
+import protoc ;
+
+exe program
+  : # sources
+    program.cpp
+
+    a.proto
+    b.proto
+
+    protobuf
+  ;
+
+pkg-config.import protobuf ;
+----
+
+=== Using a library
+
+This example builds the protocol into a separate library that can be
+reused.
+
+It also shows the use of `<implicit-dependency>` as required with
+generated headers.
+
+[source, jam]
+----
+# Jamfile
+
+import protoc ;
+
+lib example
+  : # sources
+    a.proto
+    b.proto
+
+    protobuf
+  ;
+
+exe program
+  : # sources
+    program.cpp
+
+    example
+  : # requirements
+    <implicit-dependency>example
+  ;
+
+pkg-config.import protobuf ;
+----
+
+|# # end::doc[]
+
+import common ;
+import errors ;
+import feature ;
+import "class" ;
+import generators ;
+import scanner ;
+import toolset ;
+import type ;
+
+type.register PROTO : proto ;
+
+if [ MATCH (--debug-configuration) : [ modules.peek : ARGV ] ]
+{
+  .debug-configuration = true ;
+}
+
+rule init ( version ? : command * : options * )
+{
+  local possible-paths ;
+
+  command = [ common.get-invocation-command protoc : protoc : $(command) ] ;
+
+  if $(command)
+  {
+    local output-lines = [ SPLIT_BY_CHARACTERS [ SHELL "$(command) --version" ] : "\n" ] ;
+    local detected-version-components = [ MATCH "libprotoc ([0-9]+(\\.[0-9])?)" : $(output-lines) ] ;
+    local detected-version = $(detected-version-components[1]) ;
+
+    if ! $(detected-version)
+    {
+      errors.user-error "protoc: no version detected" ;
+    }
+
+    if $(version)
+    {
+      if $(detected-version) != $(version)
+      {
+        errors.user-error "protoc: detected version (" $(detected-version) ") does not match desired (" $(version) ")" ;
+      }
+    }
+
+    if $(detected-version)
+    {
+      version = $(detected-version) ;
+    }
+  }
+  else
+  {
+    errors.user-error "protoc: protoc not found at" $(command) ;
+  }
+
+  if $(.debug-configuration)
+  {
+    ECHO "protoc: using protoc" $(version) "at" $(command) ;
+  }
+
+  toolset.flags protoc .protoc $(condition) : $(command) ;
+}
+
+# A scanner for .proto files
+class proto-scanner : common-scanner
+{
+  rule pattern ( )
+  {
+    return "^[  ]*import[       ]*\"([^\"]*)\";" ;
+  }
+}
+
+# A generator for .proto files
+class proto-generator : generator
+{
+  rule __init__ ( id composing ? : source-types + : target-types-and-names + : requirements * )
+  {
+    generator.__init__ $(id) $(composing) : $(source-types) : $(target-types-and-names) : $(requirements) ;
+  }
+
+  rule run ( project name ? : property-set : sources * )
+  {
+    return [ generator.run $(project) $(name) : $(property-set) : $(sources) ] ;
+  }
+
+  rule generated-targets ( sources + : property-set : project name ? )
+  {
+    local virtual-targets ;
+    for local source in $(sources)
+    {
+      if [ $(source).type ] = PROTO
+      {
+        if ! $(name)
+        {
+          name = [ generator.determine-output-name $(source) ] ;
+        }
+
+        {
+          local t ;
+          local a = [ class.new action $(source) : protoc.protoc : $(property-set) ] ;
+          t = [ class.new file-target $(name).pb.cc exact : CPP : $(project) : $(a) ] ;
+          virtual-targets += [ virtual-target.register $(t) ] ;
+          t = [ class.new file-target $(name).pb : H : $(project) : $(a) ] ;
+          virtual-targets += [ virtual-target.register $(t) ] ;
+        }
+      }
+    }
+
+    return $(virtual-targets) ;
+  }
+}
+
+scanner.register proto-scanner : include ;
+type.set-scanner PROTO : proto-scanner ;
+generators.register [ class.new proto-generator true : PROTO : CPP H ] ;
+
+toolset.flags protoc.protoc INCLUDES : <include> ;
+
+toolset.flags protoc.protoc OPTIONS <warnings-as-errors>on : --fatal_warnings ;
+
+actions protoc
+{
+  protoc $(OPTIONS) --proto_path="$(INCLUDES)" --proto_path="$(>:D)" --cpp_out="$(<[1]:D)" "$(>:D=)"
+}
