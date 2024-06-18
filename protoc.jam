@@ -21,7 +21,7 @@ generate the C++ files from `.proto` files.
 import protoc ;
 ----
 
-The protoc tool must be configured as any other Boost.Build tool.  The
+The `protoc` tool must be configured as any other Boost.Build tool.  The
 tool will automatically detect the location and version of the tool.
 
 [source, jam]
@@ -61,6 +61,18 @@ exe example
     b.proto
   ;
 ----
+
+== Properties
+
+`<include>`::
+
+This property is honored and will add directories to the search path
+for Protocol Buffers `.proto` files.
+
+`<warnings-as-errors>`::
+
+This property is honored and warnings in the Protocol Buffers `.proto`
+files will result in an error when set to `on`.
 
 == Examples
 
