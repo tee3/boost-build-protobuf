@@ -3,6 +3,10 @@
 # accompanying file LICENSE_1_0.txt or copy at
 # http://www.boost.org/LICENSE_1_0.txt)
 
+# This example assumes that the .proto files are defined in a tree and
+# the generated files appear in the same tree and are added to the
+# main target.
+
 import testing ;
 
 import pkg-config ;

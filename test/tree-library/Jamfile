@@ -3,6 +3,10 @@
 # accompanying file LICENSE_1_0.txt or copy at
 # http://www.boost.org/LICENSE_1_0.txt)
 
+# This example assumes that the protocol is generated into a library.
+# In that library, the .proto files are defined in a tree and the
+# generated files appear in the same tree.
+
 import testing ;
 
 import pkg-config ;
