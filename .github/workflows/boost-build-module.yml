@@ -18,7 +18,6 @@ jobs:
       - name: Install Tools
         run: |
           sudo apt-get -y update
-          sudo apt-get -y upgrade
           sudo apt-get -y install libboost-tools-dev asciidoctor
           sudo apt-get -y install asciidoctor
           sudo apt-get -y install protobuf-compiler libprotobuf-dev
