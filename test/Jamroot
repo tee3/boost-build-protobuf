@@ -5,11 +5,6 @@
 
 import testing ;
 
-project
-  : default-build
-    <cxxstd>14
-  ;
-
 build-project simple ;
 build-project simple-library ;
 build-project tree ;
