@@ -249,7 +249,8 @@ generators.register [ class.new proto-generator true : PROTO : CPP H ] ;
 
 toolset.flags protoc.protoc INCLUDES : <include> ;
 
-toolset.flags protoc.protoc OPTIONS <warnings-as-errors>on : --fatal_warnings ;
+# @todo this is not present in some protoc versions
+# toolset.flags protoc.protoc OPTIONS <warnings-as-errors>on : --fatal_warnings ;
 
 actions protoc
 {
