@@ -5,9 +5,20 @@
 
 import testing ;
 
-build-project simple ;
-build-project simple-library ;
-build-project simple-with-import ;
-build-project tree ;
-build-project tree-library ;
-build-project tree-with-import ;
+import pkg-config ;
+
+import protoc ;
+
+exe program
+  : # sources
+    main.cpp
+
+    a0.proto
+    a1.proto
+
+    protobuf
+  ;
+
+run program : : : : run-program ;
+
+pkg-config.import protobuf ;

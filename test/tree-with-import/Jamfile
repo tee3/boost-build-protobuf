@@ -1,0 +1,33 @@
+# Copyright 2023 Thomas Brown
+# Distributed under the Boost Software License, Version 1.0. (See
+# accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+import testing ;
+
+import pkg-config ;
+
+import protoc ;
+
+lib example
+  : # sources
+    company_a/protobuf/example/a0.proto
+    company_a/protobuf/example/a1.proto
+
+    protobuf
+  : # requirements
+    <include>.
+  ;
+
+exe program
+  : # sources
+    main.cpp
+
+    example
+  : # requirements
+    <implicit-dependency>example
+  ;
+
+run program : : : : run-program ;
+
+pkg-config.import protobuf ;
